@@ -11,6 +11,7 @@ int test_pin = 6;
 int triggerRPIpin=7;
 int counter = 0;
 String some_answer;
+String SenMLdata;
 
 void setup() {
 pinMode(test_pin, INPUT);  
@@ -52,20 +53,22 @@ void Process(String cmd1, String cmd2, String cmd3)
      Serial.println("analog read");
      reading = analogRead(cmd3.toInt());
      Serial.println(reading);
+     SenMLdata= "[{\"bn\":\"ArduinoMKR1000\",\"pinType\":"+String(cmd2)+",\"pinNb\":"+String(cmd3)+",\"pinValue\":"+String(reading)+"}]\n";
   } 
   else if (cmd2 == "Digital" || cmd2 == "digital" || cmd2 == "DIGITAL")
   {
     Serial.println("digital read");
     reading = digitalRead(cmd3.toInt());
     Serial.println(reading);
-    
+    SenMLdata= "[{\"bn\":\"ArduinoMKR1000\",\"pinType\":"+String(cmd2)+",\"pinNb\":"+String(cmd3)+",\"pinValue\":"+String(reading)+"}]\n";
   }
   Serial.println("OUTPUT 1 on pin 7");
   digitalWrite(triggerRPIpin, 1);
-  some_answer = "Read value counter =" + String(counter) + "\n";
-  Serial.println(some_answer);
-  Serial1.print(some_answer); //IMPORTANT! DO NOT PUT PRINTLN, AS THE STRING ALREADY CONTAINS \n
-  counter = counter + 1;
+  //some_answer = "Read value counter =" + String(counter) + "\n";
+   
+  Serial.println(SenMLdata);
+  Serial1.print(SenMLdata); //IMPORTANT! DO NOT PUT PRINTLN, AS THE STRING ALREADY CONTAINS \n
+  //counter = counter + 1;
 }
 
   
