@@ -26,7 +26,7 @@ received_answer=False
 def TransmitThread():
 	GPIO.output(10,1) #it should interrupt arduino and make it listen
 	GPIO.output(10,0)
-	serialcmd = "R Digital 6"
+	serialcmd = "R Analog 6"
 	ser.write(serialcmd.encode('utf-8'))
 	print (serialcmd)
 
@@ -41,6 +41,13 @@ def ReceiveThread():
 			response = ser.readline()
 			response = response.decode('utf-8')
 			print (str(response))
+			data = json.loads(response) #a SenML list
+			for item in data:
+                        	print (item)
+                        	print (item["pinType"])
+                        	print (item["pinNb"])
+                        	print (item["pinValue"])
+
 
 
 try:
