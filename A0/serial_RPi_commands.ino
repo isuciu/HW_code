@@ -53,14 +53,14 @@ void Process(String cmd1, String cmd2, String cmd3)
      Serial.println("analog read");
      reading = analogRead(cmd3.toInt());
      Serial.println(reading);
-     SenMLdata= "[{\"bn\":\"ArduinoMKR1000\",\"pinType\":"+String(cmd2)+",\"pinNb\":"+String(cmd3)+",\"pinValue\":"+String(reading)+"}]\n";
+     SenMLdata= "[{\"bn\":\"ArduinoMKR1000\",\"pinType\":\""+String(cmd2)+"\",\"pinNb\":"+String(cmd3)+",\"pinValue\":"+String(reading)+"}]\n";
   } 
   else if (cmd2 == "Digital" || cmd2 == "digital" || cmd2 == "DIGITAL")
   {
     Serial.println("digital read");
     reading = digitalRead(cmd3.toInt());
     Serial.println(reading);
-    SenMLdata= "[{\"bn\":\"ArduinoMKR1000\",\"pinType\":"+String(cmd2)+",\"pinNb\":"+String(cmd3)+",\"pinValue\":"+String(reading)+"}]\n";
+    SenMLdata= "[{\"bn\":\"ArduinoMKR1000\",\"pinType\":\""+String(cmd2)+"\",\"pinNb\":"+String(cmd3)+",\"pinValue\":"+String(reading)+"}]\n";
   }
   Serial.println("OUTPUT 1 on pin 7");
   digitalWrite(triggerRPIpin, 1);
