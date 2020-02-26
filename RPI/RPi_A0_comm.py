@@ -2,6 +2,20 @@ import serial
 import time
 import json
 import RPi.GPIO as GPIO
+from enum import Enum
+
+class CmdType(Enum):
+	read = 0
+	config = 1
+	actuate = 2
+
+
+class SensorType(Enum):
+	analog = 0
+	digital = 1
+	spi = 2
+
+
 
 ser = serial.Serial(
 	port='/dev/serial0',
@@ -23,10 +37,19 @@ def mycallback(channel) :
 GPIO.add_event_detect(9, GPIO.RISING, callback=mycallback, bouncetime=300)
 
 received_answer=False
+
+cmdtype = "read"
+sensortype = "analog"
+param_list = [6] #pin_nb
+num_param = len(param_list)
+
+serialcmd = str(CmdType[cmdtype].value) + str(SensorType[sensortype].value) + str(num_param) + ' ' + str(param_list)
+print(serialcmd)
+
 def TransmitThread():
 	GPIO.output(10,1) #it should interrupt arduino and make it listen
 	GPIO.output(10,0)
-	serialcmd = "R Analog 6"
+	#serialcmd = "R Analog 6"
 	ser.write(serialcmd.encode('utf-8'))
 	print (serialcmd)
 
@@ -41,12 +64,15 @@ def ReceiveThread():
 			response = ser.readline()
 			response = response.decode('utf-8')
 			print (str(response))
-			data = json.loads(response) #a SenML list
-			for item in data:
-                        	print (item)
-                        	print (item["pinType"])
-                        	print (item["pinNb"])
-                        	print (item["pinValue"])
+			if len(response)>2:
+				data = json.loads(response) #a SenML list
+				for item in data:
+                        		print (item)
+                        		print (item["pinType"])
+                        		print (item["pinNb"])
+                        		print (item["pinValue"])
+			else:
+				print("no content in the answer") #only the new line character
 
 
 
