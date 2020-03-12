@@ -9,6 +9,10 @@ import os
 from random import randint
 import paho.mqtt.client as mqttClient
 import json
+import concurrent.futures
+import logging
+import threading
+
 
 class CmdType(Enum):
 	read = 0
@@ -29,17 +33,35 @@ def create_cmd(cmdtype, sensortype, param_list):
 
 def TransmitThread(ser, serialcmd, periodicity):
 	global no_answer_pending
+	global tx_lock
+	logging.debug('executing thread %s', threading.currentThread().getName())
+
+	threadname =  threading.currentThread().getName()
+	logging.debug('Waiting for lock')
+	tx_lock.acquire()	
+	logging.debug('Acquired lock')
 	now = time.time()
-	scheduler.enterabs(now + periodicity, 1, TransmitThread, (ser, serialcmd, periodicity))
+	tx = threading.Timer(periodicity, TransmitThread, (ser, serialcmd, periodicity))
+	tx.setName(threadname)
+	tx.start()
+
 	no_answer_pending = False
-	print (time.time(), ' ', serialcmd)
+
+	logging.debug('%s', serialcmd)
 	ser.write(serialcmd.encode('utf-8'))
-	scheduler.enterabs(now, 1, ReceiveThread, (ser, serialcmd))
+
+	r = threading.Timer(1, ReceiveThread, (ser, serialcmd))
+	r.setName('RX Thread')
+	r.start()
+	r.join()
+
 
 def ReceiveThread(ser, serialcmd):
-		print (time.time(), " The serial cmd transmitted was : ", serialcmd)
 		global no_answer_pending
 		global received_answer
+		logging.debug('executing thread %s', threading.currentThread().getName())
+		logging.debug('%s', serialcmd)
+
 		while no_answer_pending == False:
 			if ser.inWaiting()>0:
 				received_answer=True
@@ -53,6 +75,8 @@ def ReceiveThread(ser, serialcmd):
 					for item in data:
 						if (item["pinType"]) == str(SensorType["onewire"].value):
 							pack_data_onewire(item)
+						else:
+							tx_lock.release()
 				else:
 					print("no content in the answer") #only the new line character
 		print (time.time(), " End RX processing")
@@ -61,6 +85,7 @@ def ReceiveThread(ser, serialcmd):
 def pack_data_onewire(data):
 	global topic
 	global client
+	global tx_lock
 
 	print("####################### packing data #######################")
 	timestamp = time.time()
@@ -71,6 +96,7 @@ def pack_data_onewire(data):
 	payload = [{"bn":"","n":name, "u":unit,"v":value, "t":timestamp}]
 	print (payload)
 	client.publish(topic,json.dumps(payload)) 
+	tx_lock.release()
 
 
 
@@ -130,8 +156,11 @@ def on_connect(client, userdata, flags, rc):
 		print("Connection failed")
 
 
-
 if __name__ == "__main__":
+
+	format = "%(asctime)s: %(message)s"
+	logging.basicConfig(format=format, level=logging.DEBUG, datefmt="%H:%M:%S")
+
 	print ("Scheduling Commands for Arduino")
 	ser = serial.Serial(
         	port='/dev/ttyACM0',
@@ -141,21 +170,27 @@ if __name__ == "__main__":
 
 	print("####################### initializing command schedules #######################")
 	delay, serialcmd, periodicity = get_config()
-	size = len(delay)
+	size = len(delay) #number of configs we have
 
-	scheduler = sched.scheduler(time.time, time.sleep)
-	now = time.time()
-	
+	tx_lock = threading.Lock()
+	logging.debug('setting threads')
+
 	for i in range(1, size+1):
-		scheduler.enterabs(now + delay[i], 1, TransmitThread, (ser, serialcmd[i], periodicity[i]))
-	
+		#timer is given by expressing a delay
+		t = threading.Timer(1, TransmitThread, (ser, serialcmd[i], periodicity[i])) #all sensors send data at startup
+		t.setName(str(i))
+		t.start()
+		t.join()
+
 	print("####################### running schedules #######################")
-	scheduler.run()
-	print('Press Ctrl+{0} to exit'.format('Break' if os.name == 'nt' else 'C'))
+
+	#print('Press Ctrl+{0} to exit'.format('Break' if os.name == 'nt' else 'C'))
 
 	try:# This is here to simulate application activity (which keeps the main thread alive).
 		while True:
 			time.sleep(2)
+			logging.debug('loop')
 	except (KeyboardInterrupt, SystemExit):
 	# Not strictly necessary if daemonic mode is enabled but should be done if possible
-		scheduler.shutdown()
+		#scheduler.shutdown()
+		os.exit()
