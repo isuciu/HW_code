@@ -15,3 +15,8 @@ The serial_transmit.ino script reads the analog data from pin A0 and adds it, to
 The serial_RPi_commands.ino file receives interrupts from RPi on D8. It also triggers interrupts to RPi using D7. After serial data reception, it processes the received command and sends an answer via serial after interrupting RPi.
 
 The A0_command_manager.ino parses the serial commands received from RPi (one at a time)! The current version can read analog, digital and onewire sensors. Future development should deal with spi sensors. It only answers with the pintype and pinvalue, so RPi is in charge of completing the SenML by adding timestamp, name and unit. 
+
+# WiFi trials
+Python and A0 are communicating over the RPi WiFi Network. Python needs to know A0 device's IP in this network. A0 needs to know the RPi WiFi SSID and password in advance (easy, as RPi acts as an AP). Messages are successfully exchanged between python and Arduino MKR1000.
+
+Future development: have A0 open the socket, as RPi IP is fixed and known. Try to eliminate the need for python to know the IP in advance, or have it find it out by itself.
